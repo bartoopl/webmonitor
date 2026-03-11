@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String?
+  monitors      Monitor[]
+  alertChannels AlertChannel[]
+  createdAt     DateTime       @default(now())
+}
+
+model Monitor {
+  id            String         @id @default(cuid())
+  userId        String
+  name          String
+  url           String
+  interval      Int            @default(5) // minutes
+  isActive      Boolean        @default(true)
+  status        String         @default("unknown") // up, down, unknown
+  lastCheckedAt DateTime?
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checks        MonitorCheck[]
+  incidents     Incident[]
+  createdAt     DateTime       @default(now())
+}
+
+model MonitorCheck {
+  id           String   @id @default(cuid())
+  monitorId    String
+  status       String   // up, down
+  responseTime Int?     // ms
+  statusCode   Int?
+  error        String?
+  monitor      Monitor  @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  checkedAt    DateTime @default(now())
+}
+
+model Incident {
+  id         String    @id @default(cuid())
+  monitorId  String
+  startedAt  DateTime  @default(now())
+  resolvedAt DateTime?
+  monitor    Monitor   @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+}
+
+model AlertChannel {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // email, sms
+  value     String   // email address or phone number
+  isActive  Boolean  @default(true)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
